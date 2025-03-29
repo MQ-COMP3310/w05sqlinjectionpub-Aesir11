@@ -125,17 +125,21 @@ public class SQLiteConnectionManager {
      * @param id   the unique id for the word
      * @param word the word to store
      */
+    private static final Logger logger = Logger.getLogger(SQLiteConnectionManager.class.getName());
+
     public void addValidWord(int id, String word) {
-
-        String sql = "INSERT INTO validWords(id,word) VALUES('" + id + "','" + word + "')";
-
+        String sql = "INSERT INTO validWords(id, word) VALUES (?, ?)";
+    
         try (Connection conn = DriverManager.getConnection(databaseURL);
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+    
+            pstmt.setInt(1, id);       // sets the id safely
+            pstmt.setString(2, word);  // sets the word safely
             pstmt.executeUpdate();
+    
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            logger.log(Level.SEVERE, "Failed to add word to the database", e);
         }
-
     }
 
     /**
@@ -144,24 +148,27 @@ public class SQLiteConnectionManager {
      * @param guess the string to check if it is a valid word.
      * @return true if guess exists in the database, false otherwise
      */
+    private static final Logger logger = Logger.getLogger(SQLiteConnectionManager.class.getName());
+
     public boolean isValidWord(String guess) {
-        String sql = "SELECT count(id) as total FROM validWords WHERE word like'" + guess + "';";
-
+        String sql = "SELECT count(id) as total FROM validWords WHERE word = ?";
+    
         try (Connection conn = DriverManager.getConnection(databaseURL);
-                PreparedStatement stmt = conn.prepareStatement(sql)) {
-
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+    
+            stmt.setString(1, guess); // safely inject user input
+    
             ResultSet resultRows = stmt.executeQuery();
             if (resultRows.next()) {
                 int result = resultRows.getInt("total");
                 return (result >= 1);
             }
-
+    
             return false;
-
+    
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            logger.log(Level.WARNING, "Database error during word validation", e);
             return false;
         }
-
     }
 }
